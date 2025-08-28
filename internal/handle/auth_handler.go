@@ -1,0 +1,216 @@
+package handle
+
+import (
+	"backend/internal/consts"
+	"backend/internal/helpers"
+	"backend/internal/model"
+	"backend/internal/repo"
+	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
+)
+
+type AuthHandler struct {
+	userRepo *repo.UserRepository
+}
+
+func NewAuthHandler(userRepo *repo.UserRepository) *AuthHandler {
+	return &AuthHandler{userRepo: userRepo}
+}
+
+func (h *AuthHandler) Register(c *gin.Context) {
+	var input model.UserInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		helpers.ValidationErrorResponse(c, consts.MSG_VALIDATION_ERROR)
+		return
+	}
+
+	// Check if username exists
+	if h.userRepo.IsUsernameExists(input.Username) {
+		helpers.ErrorResponse(c, http.StatusBadRequest, consts.MSG_USERNAME_EXISTS, nil)
+		return
+	}
+
+	// Check if email exists
+	if h.userRepo.IsEmailExists(input.Email) {
+		helpers.ErrorResponse(c, http.StatusBadRequest, consts.MSG_EMAIL_EXISTS, nil)
+		return
+	}
+
+	// Hash password
+	hashedPassword, err := helpers.HashPassword(input.Password)
+	if err != nil {
+		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
+		return
+	}
+
+	// Create user
+	user := model.User{
+		Username: input.Username,
+		Email:    input.Email,
+		Password: hashedPassword,
+		FullName: input.FullName,
+		Role:     consts.ROLE_USER,
+	}
+
+	if err := h.userRepo.CreateUser(&user); err != nil {
+		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
+		return
+	}
+
+	// Generate JWT token
+	token, err := helpers.GenerateJWT(user.ID, user.Username, user.Role)
+	if err != nil {
+		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
+		return
+	}
+
+	response := gin.H{
+		"user": model.UserResponse{
+			ID:       user.ID,
+			Username: user.Username,
+			Email:    user.Email,
+			FullName: user.FullName,
+			Role:     user.Role,
+			IsActive: user.IsActive,
+		},
+		"token": token,
+	}
+
+	helpers.SuccessResponse(c, consts.MSG_SUCCESS, response)
+}
+
+func (h *AuthHandler) Login(c *gin.Context) {
+	var input model.LoginInput
+	if err := c.ShouldBindJSON(&input); err != nil {
+		helpers.ValidationErrorResponse(c, consts.MSG_VALIDATION_ERROR)
+		return
+	}
+
+	// Find user by username
+	user, err := h.userRepo.GetUserByUsername(input.Username)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			helpers.ErrorResponse(c, http.StatusUnauthorized, consts.MSG_INVALID_CREDENTIALS, nil)
+			return
+		}
+		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
+		return
+	}
+
+	// Check password
+	if !helpers.CheckPasswordHash(input.Password, user.Password) {
+		helpers.ErrorResponse(c, http.StatusUnauthorized, consts.MSG_INVALID_CREDENTIALS, nil)
+		return
+	}
+
+	// Check if user is active
+	if !user.IsActive {
+		helpers.ErrorResponse(c, http.StatusUnauthorized, consts.MSG_UNAUTHORIZED, nil)
+		return
+	}
+
+	// Generate JWT token
+	token, err := helpers.GenerateJWT(user.ID, user.Username, user.Role)
+	if err != nil {
+		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
+		return
+	}
+
+	response := gin.H{
+		"user": model.UserResponse{
+			ID:       user.ID,
+			Username: user.Username,
+			Email:    user.Email,
+			FullName: user.FullName,
+			Role:     user.Role,
+			IsActive: user.IsActive,
+		},
+		"token": token,
+	}
+
+	helpers.SuccessResponse(c, consts.MSG_SUCCESS, response)
+}
+
+func (h *AuthHandler) GetProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		helpers.UnauthorizedResponse(c, consts.MSG_UNAUTHORIZED)
+		return
+	}
+
+	user, err := h.userRepo.GetUserByID(userID.(uint))
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			helpers.ErrorResponse(c, http.StatusNotFound, consts.MSG_USER_NOT_FOUND, nil)
+			return
+		}
+		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
+		return
+	}
+
+	response := model.UserResponse{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		FullName: user.FullName,
+		Role:     user.Role,
+		IsActive: user.IsActive,
+	}
+
+	helpers.SuccessResponse(c, consts.MSG_SUCCESS, response)
+}
+
+func (h *AuthHandler) UpdateProfile(c *gin.Context) {
+	userID, exists := c.Get("user_id")
+	if !exists {
+		helpers.UnauthorizedResponse(c, consts.MSG_UNAUTHORIZED)
+		return
+	}
+
+	var input struct {
+		FullName string `json:"full_name"`
+		Email    string `json:"email" binding:"email"`
+	}
+
+	if err := c.ShouldBindJSON(&input); err != nil {
+		helpers.ValidationErrorResponse(c, consts.MSG_VALIDATION_ERROR)
+		return
+	}
+
+	user, err := h.userRepo.GetUserByID(userID.(uint))
+	if err != nil {
+		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
+		return
+	}
+
+	// Update fields
+	if input.FullName != "" {
+		user.FullName = input.FullName
+	}
+	if input.Email != "" && input.Email != user.Email {
+		// Check if email already exists
+		if h.userRepo.IsEmailExists(input.Email) {
+			helpers.ErrorResponse(c, http.StatusBadRequest, consts.MSG_EMAIL_EXISTS, nil)
+			return
+		}
+		user.Email = input.Email
+	}
+
+	if err := h.userRepo.UpdateUser(user); err != nil {
+		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
+		return
+	}
+
+	response := model.UserResponse{
+		ID:       user.ID,
+		Username: user.Username,
+		Email:    user.Email,
+		FullName: user.FullName,
+		Role:     user.Role,
+		IsActive: user.IsActive,
+	}
+
+	helpers.SuccessResponse(c, consts.MSG_SUCCESS, response)
+}
