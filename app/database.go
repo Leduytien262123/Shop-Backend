@@ -88,7 +88,17 @@ func runMigrations() error {
 	return DB.AutoMigrate(
 		&model.User{},
 		&model.Category{},
+		&model.Brand{},
 		&model.Product{},
+		&model.ProductImage{},
+		&model.Review{},
+		&model.Cart{},
+		&model.CartItem{},
+		&model.Order{},
+		&model.OrderItem{},
+		&model.Coupon{},
+		&model.Address{},
+		&model.News{},
 	)
 }
 

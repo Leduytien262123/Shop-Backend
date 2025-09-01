@@ -36,6 +36,9 @@ func main() {
 	router.SetupAdminRoutes(r)
 	router.SetupCategoryRoutes(r)
 	router.SetupProductRoutes(r)
+	router.SetupOrderRoutes(r)
+	router.SetupCartRoutes(r)
+	router.SetupNewsRoutes(r)
 
 	// Health check endpoint
 	r.GET("/health", func(c *gin.Context) {

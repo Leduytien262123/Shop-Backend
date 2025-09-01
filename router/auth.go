@@ -10,18 +10,18 @@ import (
 )
 
 func SetupAuthRoutes(router *gin.Engine) {
-	// Initialize repository and handler
+	// Khởi tạo repository và handler
 	userRepo := repo.NewUserRepository(app.GetDB())
 	authHandler := handle.NewAuthHandler(userRepo)
 
-	// Public routes
+	// Routes công khai
 	auth := router.Group("/api/auth")
 	{
 		auth.POST("/register", authHandler.Register)
 		auth.POST("/login", authHandler.Login)
 	}
 
-	// Protected routes
+	// Routes được bảo vệ
 	protected := router.Group("/api/auth")
 	protected.Use(utils.AuthMiddleware())
 	{

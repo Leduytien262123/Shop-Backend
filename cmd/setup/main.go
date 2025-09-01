@@ -4,6 +4,7 @@ import (
 	"backend/app"
 	"backend/internal/model"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
@@ -17,42 +18,41 @@ func main() {
 
 	// Connect to database
 	app.Connect()
+	db := app.GetDB()
 
-	// Create admin user if not exists
-	createAdminUser()
-
-	log.Println("✅ Database setup completed!")
-}
-
-func createAdminUser() {
-	var user model.User
-	result := app.DB.Where("username = ?", "admin").First(&user)
+	// Check if owner already exists
+	var ownerCount int64
+	db.Model(&model.User{}).Where("role = ?", "owner").Count(&ownerCount)
 	
-	if result.Error != nil {
-		// Admin user doesn't exist, create one
-		hashedPassword, err := bcrypt.GenerateFromPassword([]byte("admin123"), bcrypt.DefaultCost)
-		if err != nil {
-			log.Fatal("❌ Failed to hash password:", err)
-		}
-
-		admin := model.User{
-			Username: "admin",
-			Email:    "admin@example.com",
-			Password: string(hashedPassword),
-			FullName: "System Administrator",
-			Role:     "admin",
-			IsActive: true,
-		}
-
-		if err := app.DB.Create(&admin).Error; err != nil {
-			log.Fatal("❌ Failed to create admin user:", err)
-		}
-
-		log.Println("✅ Admin user created successfully!")
-		log.Println("   Username: admin")
-		log.Println("   Password: admin123")
-		log.Println("   Please change the password after first login!")
-	} else {
-		log.Println("ℹ️ Admin user already exists")
+	if ownerCount > 0 {
+		log.Println("Owner account already exists. Skipping creation.")
+		return
 	}
+
+	// Create default owner account
+	password := "owner123" // Default password - should be changed after first login
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		log.Fatal("Failed to hash password:", err)
+	}
+
+	owner := model.User{
+		Username: "owner",
+		Email:    "owner@walletshop.com",
+		Password: string(hashedPassword),
+		FullName: "System Owner",
+		Role:     "owner",
+		IsActive: true,
+	}
+
+	if err := db.Create(&owner).Error; err != nil {
+		log.Fatal("Failed to create owner account:", err)
+	}
+
+	log.Println("✅ Default owner account created successfully!")
+	log.Println("Username: owner")
+	log.Println("Password: owner123")
+	log.Println("⚠️  Please change the password after first login!")
+	
+	os.Exit(0)
 }

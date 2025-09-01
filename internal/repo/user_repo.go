@@ -70,3 +70,89 @@ func (r *UserRepository) IsEmailExists(email string) bool {
 	r.db.Model(&model.User{}).Where("email = ?", email).Count(&count)
 	return count > 0
 }
+
+// CheckOwnerExists kiểm tra tài khoản owner đã tồn tại hay chưa
+func (r *UserRepository) CheckOwnerExists() (bool, error) {
+	var count int64
+	err := r.db.Model(&model.User{}).Where("role = ?", "owner").Count(&count).Error
+	return count > 0, err
+}
+
+// GetUsersByRole lấy người dùng theo vai trò, có phân trang
+func (r *UserRepository) GetUsersByRole(role string, page, limit int) ([]model.User, int64, error) {
+	var users []model.User
+	var total int64
+
+	// Đếm tổng số bản ghi
+	if err := r.db.Model(&model.User{}).Where("role = ?", role).Count(&total).Error; err != nil {
+		return nil, 0, err
+	}
+
+	// Tính offset
+	offset := (page - 1) * limit
+
+	// Lấy danh sách người dùng
+	err := r.db.Where("role = ?", role).
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(limit).
+		Find(&users).Error
+
+	return users, total, err
+}
+
+// UpdateUserRole cập nhật vai trò người dùng (kèm kiểm tra quyền)
+func (r *UserRepository) UpdateUserRole(userID uint, newRole string) error {
+	return r.db.Model(&model.User{}).Where("id = ?", userID).Update("role", newRole).Error
+}
+
+// GetUserStats lấy thống kê người dùng theo vai trò
+func (r *UserRepository) GetUserStats() (map[string]interface{}, error) {
+	stats := make(map[string]interface{})
+
+	// Đếm người dùng theo từng vai trò
+	var roleCounts []struct {
+		Role  string `json:"role"`
+		Count int64  `json:"count"`
+	}
+	if err := r.db.Model(&model.User{}).
+		Select("role, COUNT(*) as count").
+		Group("role").
+		Find(&roleCounts).Error; err != nil {
+		return nil, err
+	}
+	stats["users_by_role"] = roleCounts
+
+	// Tổng số người dùng đang hoạt động
+	var activeUsers int64
+	if err := r.db.Model(&model.User{}).Where("is_active = ?", true).Count(&activeUsers).Error; err != nil {
+		return nil, err
+	}
+	stats["active_users"] = activeUsers
+
+	// Tổng số người dùng không hoạt động
+	var inactiveUsers int64
+	if err := r.db.Model(&model.User{}).Where("is_active = ?", false).Count(&inactiveUsers).Error; err != nil {
+		return nil, err
+	}
+	stats["inactive_users"] = inactiveUsers
+
+	return stats, nil
+}
+
+// CheckUserCanManage kiểm tra người dùng có thể quản lý user mục tiêu không
+func (r *UserRepository) CheckUserCanManage(managerID, targetID uint) (bool, error) {
+	var manager, target model.User
+	
+	if err := r.db.First(&manager, managerID).Error; err != nil {
+		return false, err
+	}
+	
+	if err := r.db.First(&target, targetID).Error; err != nil {
+		return false, err
+	}
+
+	// Gợi ý: có thể dùng gói consts để kiểm tra vai trò
+	return manager.Role == "owner" && target.Role != "owner" || 
+		   manager.Role == "admin" && (target.Role == "member" || target.Role == "user"), nil
+}

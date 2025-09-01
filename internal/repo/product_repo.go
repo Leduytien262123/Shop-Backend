@@ -18,12 +18,12 @@ func NewProductRepo() *ProductRepo {
 	}
 }
 
-// Create creates a new product
+// Create tạo mới một sản phẩm
 func (r *ProductRepo) Create(product *model.Product) error {
 	return r.db.Create(product).Error
 }
 
-// GetByID retrieves a product by ID with category
+// GetByID lấy sản phẩm theo ID kèm danh mục
 func (r *ProductRepo) GetByID(id uint) (*model.Product, error) {
 	var product model.Product
 	err := r.db.Preload("Category").First(&product, id).Error
@@ -36,7 +36,7 @@ func (r *ProductRepo) GetByID(id uint) (*model.Product, error) {
 	return &product, nil
 }
 
-// GetBySKU retrieves a product by SKU
+// GetBySKU lấy sản phẩm theo SKU
 func (r *ProductRepo) GetBySKU(sku string) (*model.Product, error) {
 	var product model.Product
 	err := r.db.Preload("Category").Where("sku = ?", sku).First(&product).Error
@@ -49,20 +49,20 @@ func (r *ProductRepo) GetBySKU(sku string) (*model.Product, error) {
 	return &product, nil
 }
 
-// GetAll retrieves all active products with pagination
+// GetAll lấy tất cả sản phẩm đang hoạt động (có phân trang)
 func (r *ProductRepo) GetAll(page, limit int) ([]model.Product, int64, error) {
 	var products []model.Product
 	var total int64
 
-	// Count total records
+	// Đếm tổng số bản ghi
 	if err := r.db.Model(&model.Product{}).Where("is_active = ?", true).Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Calculate offset
+	// Tính offset
 	offset := (page - 1) * limit
 
-	// Get products with category
+	// Lấy sản phẩm kèm danh mục
 	err := r.db.Preload("Category").
 		Where("is_active = ?", true).
 		Offset(offset).
@@ -72,21 +72,21 @@ func (r *ProductRepo) GetAll(page, limit int) ([]model.Product, int64, error) {
 	return products, total, err
 }
 
-// GetByCategoryID retrieves products by category ID
+// GetByCategoryID lấy sản phẩm theo ID danh mục
 func (r *ProductRepo) GetByCategoryID(categoryID uint, page, limit int) ([]model.Product, int64, error) {
 	var products []model.Product
 	var total int64
 
-	// Count total records
+	// Đếm tổng số bản ghi
 	query := r.db.Model(&model.Product{}).Where("category_id = ? AND is_active = ?", categoryID, true)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, 0, err
 	}
 
-	// Calculate offset
+	// Tính offset
 	offset := (page - 1) * limit
 
-	// Get products with category
+	// Lấy sản phẩm kèm danh mục
 	err := r.db.Preload("Category").
 		Where("category_id = ? AND is_active = ?", categoryID, true).
 		Offset(offset).
@@ -96,17 +96,17 @@ func (r *ProductRepo) GetByCategoryID(categoryID uint, page, limit int) ([]model
 	return products, total, err
 }
 
-// Update updates a product
+// Update cập nhật sản phẩm
 func (r *ProductRepo) Update(product *model.Product) error {
 	return r.db.Save(product).Error
 }
 
-// Delete soft deletes a product
+// Delete xóa mềm sản phẩm
 func (r *ProductRepo) Delete(id uint) error {
 	return r.db.Delete(&model.Product{}, id).Error
 }
 
-// CheckSKUExists checks if a SKU already exists (for different product)
+// CheckSKUExists kiểm tra SKU đã tồn tại (loại trừ sản phẩm khác khi truyền excludeID)
 func (r *ProductRepo) CheckSKUExists(sku string, excludeID uint) (bool, error) {
 	var count int64
 	query := r.db.Model(&model.Product{}).Where("sku = ?", sku)
@@ -117,7 +117,7 @@ func (r *ProductRepo) CheckSKUExists(sku string, excludeID uint) (bool, error) {
 	return count > 0, err
 }
 
-// UpdateStock updates product stock
+// UpdateStock cập nhật tồn kho sản phẩm
 func (r *ProductRepo) UpdateStock(id uint, stock int) error {
 	return r.db.Model(&model.Product{}).Where("id = ?", id).Update("stock", stock).Error
 }

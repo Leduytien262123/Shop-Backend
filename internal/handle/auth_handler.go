@@ -26,26 +26,26 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Check if username exists
+	// Kiểm tra xem username đã tồn tại chưa
 	if h.userRepo.IsUsernameExists(input.Username) {
 		helpers.ErrorResponse(c, http.StatusBadRequest, consts.MSG_USERNAME_EXISTS, nil)
 		return
 	}
 
-	// Check if email exists
+	// Kiểm tra xem email đã tồn tại chưa
 	if h.userRepo.IsEmailExists(input.Email) {
 		helpers.ErrorResponse(c, http.StatusBadRequest, consts.MSG_EMAIL_EXISTS, nil)
 		return
 	}
 
-	// Hash password
+	// Mã hóa mật khẩu
 	hashedPassword, err := helpers.HashPassword(input.Password)
 	if err != nil {
 		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
 		return
 	}
 
-	// Create user
+	// Tạo người dùng
 	user := model.User{
 		Username: input.Username,
 		Email:    input.Email,
@@ -59,7 +59,7 @@ func (h *AuthHandler) Register(c *gin.Context) {
 		return
 	}
 
-	// Generate JWT token
+	// Tạo JWT token
 	token, err := helpers.GenerateJWT(user.ID, user.Username, user.Role)
 	if err != nil {
 		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
@@ -88,7 +88,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Find user by username
+	// Tìm người dùng theo username
 	user, err := h.userRepo.GetUserByUsername(input.Username)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -99,19 +99,19 @@ func (h *AuthHandler) Login(c *gin.Context) {
 		return
 	}
 
-	// Check password
+	// Kiểm tra mật khẩu
 	if !helpers.CheckPasswordHash(input.Password, user.Password) {
 		helpers.ErrorResponse(c, http.StatusUnauthorized, consts.MSG_INVALID_CREDENTIALS, nil)
 		return
 	}
 
-	// Check if user is active
+	// Kiểm tra xem người dùng có đang hoạt động không
 	if !user.IsActive {
 		helpers.ErrorResponse(c, http.StatusUnauthorized, consts.MSG_UNAUTHORIZED, nil)
 		return
 	}
 
-	// Generate JWT token
+	// Tạo JWT token
 	token, err := helpers.GenerateJWT(user.ID, user.Username, user.Role)
 	if err != nil {
 		helpers.ErrorResponse(c, http.StatusInternalServerError, consts.MSG_INTERNAL_ERROR, err)
@@ -185,12 +185,12 @@ func (h *AuthHandler) UpdateProfile(c *gin.Context) {
 		return
 	}
 
-	// Update fields
+	// Cập nhật các trường
 	if input.FullName != "" {
 		user.FullName = input.FullName
 	}
 	if input.Email != "" && input.Email != user.Email {
-		// Check if email already exists
+		// Kiểm tra xem email đã tồn tại chưa
 		if h.userRepo.IsEmailExists(input.Email) {
 			helpers.ErrorResponse(c, http.StatusBadRequest, consts.MSG_EMAIL_EXISTS, nil)
 			return

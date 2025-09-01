@@ -2,6 +2,7 @@ package router
 
 import (
 	"backend/internal/handle"
+	"backend/utils"
 
 	"github.com/gin-gonic/gin"
 )
@@ -9,7 +10,7 @@ import (
 func SetupCategoryRoutes(r *gin.Engine) {
 	categoryHandler := handle.NewCategoryHandler()
 
-	// Public routes
+	// Routes công khai
 	publicRoutes := r.Group("/api/categories")
 	{
 		publicRoutes.GET("/", categoryHandler.GetCategories)
@@ -17,10 +18,10 @@ func SetupCategoryRoutes(r *gin.Engine) {
 		publicRoutes.GET("/slug/:slug", categoryHandler.GetCategoryBySlug)
 	}
 
-	// Protected routes (admin only) - TEMPORARILY DISABLED AUTH FOR TESTING
+	// Routes được bảo vệ (admin và owner)
 	adminRoutes := r.Group("/api/admin/categories")
-	// adminRoutes.Use(utils.AuthMiddleware()) // Commented for testing
-	// adminRoutes.Use(utils.AdminMiddleware()) // Commented for testing
+	adminRoutes.Use(utils.AuthMiddleware())
+	adminRoutes.Use(utils.AdminMiddleware()) // Bây giờ cho phép cả admin và owner
 	{
 		adminRoutes.GET("/", categoryHandler.GetCategories) 
 		adminRoutes.GET("/:id", categoryHandler.GetCategoryByID)

@@ -18,12 +18,12 @@ func NewCategoryRepo() *CategoryRepo {
 	}
 }
 
-// Create creates a new category
+// Create tạo mới một danh mục
 func (r *CategoryRepo) Create(category *model.Category) error {
 	return r.db.Create(category).Error
 }
 
-// GetByID retrieves a category by ID
+// GetByID lấy danh mục theo ID
 func (r *CategoryRepo) GetByID(id uint) (*model.Category, error) {
 	var category model.Category
 	err := r.db.First(&category, id).Error
@@ -36,7 +36,7 @@ func (r *CategoryRepo) GetByID(id uint) (*model.Category, error) {
 	return &category, nil
 }
 
-// GetBySlug retrieves a category by slug
+// GetBySlug lấy danh mục theo slug
 func (r *CategoryRepo) GetBySlug(slug string) (*model.Category, error) {
 	var category model.Category
 	err := r.db.Where("slug = ?", slug).First(&category).Error
@@ -49,31 +49,31 @@ func (r *CategoryRepo) GetBySlug(slug string) (*model.Category, error) {
 	return &category, nil
 }
 
-// GetAll retrieves all active categories
+// GetAll lấy tất cả danh mục đang hoạt động (is_active = true)
 func (r *CategoryRepo) GetAll() ([]model.Category, error) {
 	var categories []model.Category
 	err := r.db.Where("is_active = ?", true).Find(&categories).Error
 	return categories, err
 }
 
-// GetAllWithProducts retrieves all categories with their products
+// GetAllWithProducts lấy tất cả danh mục kèm theo danh sách sản phẩm
 func (r *CategoryRepo) GetAllWithProducts() ([]model.Category, error) {
 	var categories []model.Category
 	err := r.db.Preload("Products").Where("is_active = ?", true).Find(&categories).Error
 	return categories, err
 }
 
-// Update updates a category
+// Update cập nhật danh mục
 func (r *CategoryRepo) Update(category *model.Category) error {
 	return r.db.Save(category).Error
 }
 
-// Delete soft deletes a category
+// Delete xóa mềm một danh mục
 func (r *CategoryRepo) Delete(id uint) error {
 	return r.db.Delete(&model.Category{}, id).Error
 }
 
-// CheckSlugExists checks if a slug already exists (for different category)
+// CheckSlugExists kiểm tra slug đã tồn tại hay chưa (loại trừ danh mục có ID = excludeID)
 func (r *CategoryRepo) CheckSlugExists(slug string, excludeID uint) (bool, error) {
 	var count int64
 	query := r.db.Model(&model.Category{}).Where("slug = ?", slug)

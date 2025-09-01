@@ -31,6 +31,24 @@ type UserInput struct {
 	FullName string `json:"full_name" binding:"max=100"`
 }
 
+type CreateUserInput struct {
+	Username string `json:"username" binding:"required,min=3,max=50"`
+	Email    string `json:"email" binding:"required,email,max=100"`
+	Password string `json:"password" binding:"required,min=6,max=100"`
+	FullName string `json:"full_name" binding:"max=100"`
+	Role     string `json:"role" binding:"required,oneof=admin member"`
+}
+
+type UpdateUserRoleInput struct {
+	Role string `json:"role" binding:"required,oneof=owner admin member user"`
+}
+
+type AssignPermissionInput struct {
+	UserID     uint   `json:"user_id" binding:"required"`
+	Permission string `json:"permission" binding:"required,oneof=full write read none"`
+	Resource   string `json:"resource" binding:"required"`
+}
+
 type LoginInput struct {
 	Username string `json:"username" binding:"required"`
 	Password string `json:"password" binding:"required"`
