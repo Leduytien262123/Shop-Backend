@@ -24,11 +24,11 @@ type News struct {
 	UpdatedAt   time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 
-	// Relationships
+	// Quan hệ
 	Author *User `json:"author,omitempty" gorm:"foreignKey:AuthorID;constraint:OnUpdate:CASCADE,OnDelete:RESTRICT"`
 }
 
-// TableName specifies the table name for News model
+// TableName chỉ định tên bảng cho model News
 func (News) TableName() string {
 	return "news"
 }
@@ -64,7 +64,7 @@ type NewsResponse struct {
 	UpdatedAt   time.Time     `json:"updated_at"`
 }
 
-// ToResponse converts News to NewsResponse
+// ToResponse chuyển News thành NewsResponse
 func (n *News) ToResponse() NewsResponse {
 	response := NewsResponse{
 		ID:          n.ID,
@@ -84,7 +84,7 @@ func (n *News) ToResponse() NewsResponse {
 		UpdatedAt:   n.UpdatedAt,
 	}
 
-	// Include author information if loaded
+	// Bao gồm thông tin tác giả nếu đã được nạp
 	if n.Author != nil {
 		authorResponse := n.Author.ToResponse()
 		response.Author = &authorResponse

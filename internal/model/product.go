@@ -26,14 +26,14 @@ type Product struct {
 	UpdatedAt   time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 
-	// Relationships
+	// Quan hệ
 	Category      *Category       `json:"category,omitempty" gorm:"foreignKey:CategoryID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	Brand         *Brand          `json:"brand,omitempty" gorm:"foreignKey:BrandID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 	ProductImages []ProductImage  `json:"product_images,omitempty" gorm:"foreignKey:ProductID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 	Reviews       []Review        `json:"reviews,omitempty" gorm:"foreignKey:ProductID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE"`
 }
 
-// TableName specifies the table name for Product model
+// TableName chỉ định tên bảng cho model Product
 func (Product) TableName() string {
 	return "products"
 }
@@ -79,7 +79,7 @@ type ProductResponse struct {
 	UpdatedAt     time.Time              `json:"updated_at"`
 }
 
-// ToResponse converts Product to ProductResponse
+// ToResponse chuyển Product thành ProductResponse
 func (p *Product) ToResponse() ProductResponse {
 	response := ProductResponse{
 		ID:          p.ID,
@@ -101,26 +101,26 @@ func (p *Product) ToResponse() ProductResponse {
 		UpdatedAt:   p.UpdatedAt,
 	}
 
-	// Include category information if loaded
+	// Bao gồm thông tin danh mục nếu đã được nạp
 	if p.Category != nil {
 		categoryResponse := p.Category.ToResponse()
 		response.Category = &categoryResponse
 	}
 
-	// Include brand information if loaded
+	// Bao gồm thông tin thương hiệu nếu đã được nạp
 	if p.Brand != nil {
 		brandResponse := p.Brand.ToResponse()
 		response.Brand = &brandResponse
 	}
 
-	// Include product images if loaded
+	// Bao gồm danh sách ảnh sản phẩm nếu đã được nạp
 	if len(p.ProductImages) > 0 {
 		for _, img := range p.ProductImages {
 			response.ProductImages = append(response.ProductImages, img.ToResponse())
 		}
 	}
 
-	// Calculate average rating and review count
+	// Tính điểm đánh giá trung bình và số lượng đánh giá
 	if len(p.Reviews) > 0 {
 		totalRating := 0.0
 		activeReviews := 0

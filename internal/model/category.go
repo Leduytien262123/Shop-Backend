@@ -16,11 +16,11 @@ type Category struct {
 	UpdatedAt   time.Time      `json:"updated_at" gorm:"autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 
-	// Relationships
+	// Quan hệ
 	Products []Product `json:"products,omitempty" gorm:"foreignKey:CategoryID;constraint:OnUpdate:CASCADE,OnDelete:SET NULL"`
 }
 
-// TableName specifies the table name for Category model
+// TableName chỉ định tên bảng cho model Category
 func (Category) TableName() string {
 	return "categories"
 }
@@ -41,7 +41,7 @@ type CategoryResponse struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// ToResponse converts Category to CategoryResponse
+// ToResponse chuyển Category thành CategoryResponse
 func (c *Category) ToResponse() CategoryResponse {
 	return CategoryResponse{
 		ID:          c.ID,

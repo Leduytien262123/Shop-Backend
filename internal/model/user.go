@@ -19,7 +19,7 @@ type User struct {
 	DeletedAt gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
-// TableName specifies the table name for User model
+// TableName chỉ định tên bảng cho model User
 func (User) TableName() string {
 	return "users"
 }

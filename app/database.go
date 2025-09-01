@@ -15,7 +15,7 @@ import (
 var DB *gorm.DB
 
 func Connect() {
-	// First, connect without database to create it if needed
+	// Kết nối tới MySQL (chưa chọn DB) để tạo cơ sở dữ liệu nếu cần
 	dsnWithoutDB := fmt.Sprintf("%s:%s@tcp(%s:%s)/?charset=utf8mb4&parseTime=True&loc=Local",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
@@ -23,18 +23,18 @@ func Connect() {
 		os.Getenv("DB_PORT"),
 	)
 
-	// Configure GORM with less verbose logging
+	// Cấu hình GORM giảm mức độ log
 	config := &gorm.Config{
-		Logger: logger.Default.LogMode(logger.Warn), // Chỉ hiển thị warning và error
+		Logger: logger.Default.LogMode(logger.Warn), // Chỉ hiển thị cảnh báo và lỗi
 	}
 
-	// Connect without database first
+	// Kết nối trước mà chưa chọn cơ sở dữ liệu
 	tempDB, err := gorm.Open(mysql.Open(dsnWithoutDB), config)
 	if err != nil {
 		log.Fatal("❌ Failed to connect to MySQL server:", err)
 	}
 
-	// Create database if not exists
+	// Tạo cơ sở dữ liệu nếu chưa tồn tại
 	dbName := os.Getenv("DB_NAME")
 	if dbName == "" {
 		dbName = "backend"
@@ -47,7 +47,7 @@ func Connect() {
 	
 	log.Printf("✅ Database '%s' ensured to exist", dbName)
 
-	// Now connect to the specific database
+	// Bây giờ kết nối tới cơ sở dữ liệu cụ thể
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 		os.Getenv("DB_USER"),
 		os.Getenv("DB_PASSWORD"),
@@ -56,26 +56,26 @@ func Connect() {
 		dbName,
 	)
 
-	// Connect to database
+	// Kết nối tới cơ sở dữ liệu
 	database, err := gorm.Open(mysql.Open(dsn), config)
 	if err != nil {
 		log.Fatal("❌ Failed to connect to database:", err)
 	}
 
-	// Configure connection pool
+	// Cấu hình connection pool
 	sqlDB, err := database.DB()
 	if err != nil {
 		log.Fatal("❌ Failed to get database instance:", err)
 	}
 
-	// Set connection pool settings
+	// Thiết lập tham số cho connection pool
 	sqlDB.SetMaxIdleConns(10)
 	sqlDB.SetMaxOpenConns(100)
 	sqlDB.SetConnMaxLifetime(time.Hour)
 
 	DB = database
 
-	// Run migrations
+	// Chạy migration
 	if err := runMigrations(); err != nil {
 		log.Fatal("❌ Failed to run migrations:", err)
 	}
@@ -84,7 +84,7 @@ func Connect() {
 }
 
 func runMigrations() error {
-	// Auto-migrate all models
+	// Tự động migrate tất cả các model
 	return DB.AutoMigrate(
 		&model.User{},
 		&model.Category{},
